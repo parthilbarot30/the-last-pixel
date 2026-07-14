@@ -1,30 +1,122 @@
-## Devvit Phaser Starter
+# The Last Pixel
 
-A starter to build web applications on Reddit's developer platform
+> A daily community pixel art reveal game built on Reddit with Devvit Web + Phaser 3
 
-- [Devvit](https://developers.reddit.com/): A way to build and deploy immersive games on Reddit
-- [Vite](https://vite.dev/): For compiling the webView
-- [Phaser](https://phaser.io/): 2D game engine
-- [Hono](https://hono.dev/): For backend logic
-- [TypeScript](https://www.typescriptlang.org/): For type safety
+## What is it?
 
-## Getting Started
+A hidden procedurally generated pixel art image is buried under a 64×64 grid. Every Reddit user gets exactly **one cell reveal per day**. The community collectively uncovers the image together.
 
-> Make sure you have Node 22 downloaded on your machine before running!
+- Between **20–40% revealed** → a guessing window opens. Submit one locked-in guess of what the art is.
+- At **midnight** → the full image reveals with a wave animation, then resets with brand new art.
+- Every day is a fresh mystery. Every reveal matters.
 
-1. Run `npm create devvit@latest --template=phaser`
-2. Go through the installation wizard. You will need to create a Reddit account and connect it to Reddit developers
-3. Copy the command on the success page into your terminal
+## Play it
 
-## Commands
+**[→ Play on Reddit](https://www.reddit.com/r/thelastpixel/comments/1ut9m10/the_last_pixel_uncover_todays_hidden_art/)**
 
-- `npm run dev`: Starts a development server where you can develop your application live on Reddit.
-- `npm run build`: Builds your client and server projects
-- `npm run deploy`: Uploads a new version of your app
-- `npm run launch`: Publishes your app for review
-- `npm run login`: Logs your CLI into Reddit
-- `npm run type-check`: Type checks, lints, and prettifies your app
+**[→ App listing](https://developers.reddit.com/apps/parthil-pixel)**
 
-## Credits
+**[→ Subreddit](https://www.reddit.com/r/thelastpixel)**
 
-Thanks to the Phaser team for [providing a great template](https://github.com/phaserjs/template-vite-ts)!
+## Built with
+
+| Technology | Role |
+|------------|------|
+| Devvit Web | Reddit platform integration, deployment |
+| Phaser 3 | Interactive canvas, animations, zoom/pan |
+| Redis | Pixel state, daily limits, guess storage |
+| Hono | Server routes (reveal, guess, init) |
+| TypeScript | End-to-end type safety |
+| Procedural generation | Daily pixel art from date seed |
+
+## Features
+
+- **64×64 interactive grid** rendered with Phaser 3
+- **9 pixel art themes** — landscapes, cityscapes, underwater scenes, forests, faces, abstract waves, space, geometric patterns, and animals — generated fresh every day from a date seed
+- **One reveal per user per day** — enforced server-side via Redis
+- **Guess mechanic** — locked-in single guess between 20–40% revealed
+- **Midnight reset** — automatic board wipe and new art on every new day
+- **Zoom + pan** — + / - buttons and drag to navigate zoomed canvas
+- **Guesses ticker** — scrolling display of community guesses
+- **Midnight countdown** — live timer when fully revealed
+- **Mobile responsive** — works on Reddit mobile app and browser
+
+## How it works
+
+```
+User opens post
+       ↓
+Phaser renders 64×64 grid (all cells covered)
+       ↓
+User taps a cell → POST /api/reveal
+       ↓
+Server checks: revealed today? cell taken? → saves to Redis
+       ↓
+Real image color returned → cell animates open
+       ↓
+At 20% revealed → guess button activates
+At 40% revealed → guess window closes
+At midnight → board resets, new art generated
+```
+
+## Project structure
+
+```
+src/
+  client/
+    scenes/
+      Game.ts        ← Phaser scene (grid, animations, zoom/pan)
+    game.ts          ← Phaser config + DOM button wiring
+    game.html        ← Game shell with guess overlay + zoom controls
+    game.css         ← Visual identity (Space Mono, dark theme)
+    splash.ts        ← Splash screen with animated preview canvas
+    splash.html      ← Splash screen markup
+    splash.css       ← Splash screen styles
+  server/
+    routes/
+      api.ts         ← /reveal, /guess, /init endpoints
+      pixelart.ts    ← Procedural pixel art generator (9 themes)
+      triggers.ts    ← App install trigger
+    core/
+      post.ts        ← Auto post creation
+    index.ts         ← Hono server entry point
+  shared/
+    api.ts           ← Shared types
+devvit.json          ← Devvit app config
+```
+
+## Running locally
+
+```bash
+# Install dependencies
+npm install
+
+# Login to Devvit
+devvit login
+
+# Deploy to your test subreddit
+devvit upload
+
+# Or run in playtest mode
+devvit playtest your_subreddit
+```
+
+> **Note:** Requires Node 22. Use nvm to switch: `nvm use 22`
+
+## Submission
+
+Built for the **Reddit Devvit Game Jam 2025** (June 17 – July 15).
+
+Targeting:
+- Best App with a Hook
+- Best Use of Phaser
+- Best Use of Retention Mechanics
+- Best Use of User Contributions
+
+## Author
+
+**Parthil Barot** — B.Tech CSE, Nirma University
+
+---
+
+*The Last Pixel — one reveal, one guess, one day at a time.*
