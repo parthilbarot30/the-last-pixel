@@ -2,15 +2,48 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="game.css" />
-    <title>Phaser - Template</title>
+    <title>The Last Pixel</title>
   </head>
-
   <body>
     <div id="app">
       <div id="game-container"></div>
     </div>
+
+    <!-- Guess overlay -->
+    <div id="guess-overlay" style="display:none;">
+      <div id="guess-box">
+      <button id="guess-close" style="
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: transparent;
+        border: none;
+        color: #555;
+        font-size: 18px;
+        cursor: pointer;
+        font-family: 'Space Mono', monospace;
+        line-height: 1;
+      ">✕</button>
+      <div id="guess-phase">20–40% revealed — guess the art!</div>
+        <div id="guess-hint">one guess only — make it count</div>
+        <input id="guess-input" type="text" maxlength="50" placeholder="what do you think it is?" autocomplete="off" />
+        <button id="guess-submit">lock in guess</button>
+        <div id="guess-error"></div>
+      </div>
+    </div>
+
+    <!-- Zoom controls -->
+    <div id="zoom-controls">
+      <button id="guess-btn" title="Guess the art">?</button>
+      <button id="zoom-in">+</button>
+      <button id="zoom-out">−</button>
+    </div>
+
     <script type="module" src="game.ts"></script>
   </body>
 </html>

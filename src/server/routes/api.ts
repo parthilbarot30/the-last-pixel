@@ -2,6 +2,28 @@ import { Hono } from 'hono';
 import { redis, reddit } from '@devvit/web/server';
 import { generateDailyArt, todayDateStr } from './pixelart';
 
+const LAST_RESET_KEY = 'last_reset_date';
+
+async function resetIfNewDay() {
+  const today = todayDateStr();
+  const lastReset = await redis.get(LAST_RESET_KEY);
+  if (lastReset === today) return; // already reset today
+
+  // New day — wipe the board
+  const raw = await redis.get(REVEALED_INDEX);
+  const index: string[] = raw ? JSON.parse(raw) : [];
+
+  for (const entry of index) {
+    const [r, c] = entry.split(':').map(Number);
+    await redis.del(cellKey(r, c));
+  }
+
+  await redis.del(REVEALED_INDEX);
+  await redis.del(GUESSES_KEY);
+  await redis.set(LAST_RESET_KEY, today);
+  console.log(`Board reset for ${today}. Cleared ${index.length} cells.`);
+}
+
 type CellData = {
   revealedBy: string;
   color: string;       // actual image color at this position
@@ -53,6 +75,7 @@ async function getGuesses(): Promise<GuessData[]> {
 // ── GET /api/init ─────────────────────────────────────────
 api.get('/init', async (c) => {
   try {
+    await resetIfNewDay();
     const username = (await reddit.getCurrentUsername()) ?? 'anonymous';
     const today = todayDateStr();
 
@@ -63,7 +86,8 @@ api.get('/init', async (c) => {
       : { lastRevealed: '', hasGuessed: false };
 
     const hasRevealedToday = userData.lastRevealed === today;
-    const hasGuessed = userData.hasGuessed ?? false;
+    const hasGuessed = userData.hasGuessed === true && 
+                   userData.hasGuessedDate === today;
 
     // Load revealed cells
     const index = await getRevealedIndex();
@@ -88,7 +112,7 @@ api.get('/init', async (c) => {
 
     // Generate today's art metadata (not sending all pixels — too large)
     const art = generateDailyArt(today);
-
+    
     return c.json({
       username,
       hasRevealedToday,
@@ -173,24 +197,26 @@ api.post('/reveal', async (c) => {
 api.post('/guess', async (c) => {
   try {
     const username = (await reddit.getCurrentUsername()) ?? 'anonymous';
-    const today = todayDateStr();
+    const today = todayDateStr(); // ADD THIS LINE
     const { guess } = await c.req.json();
 
     if (!guess || guess.trim().length < 2) {
       return c.json<ErrorResponse>({ status: 'error', message: 'guess too short' }, 400);
     }
 
-    // Check user hasn't already guessed
+    // Always read fresh from Redis
     const userRaw = await redis.get(userKey(username));
     const userData = userRaw
       ? JSON.parse(userRaw)
       : { lastRevealed: '', hasGuessed: false };
 
-    if (userData.hasGuessed) {
-      return c.json<ErrorResponse>({ status: 'error', message: 'already guessed' }, 400);
-    }
+    const alreadyGuessedToday = userData.hasGuessed === true && 
+  (userData.hasGuessedDate === today || !userData.hasGuessedDate);
+if (alreadyGuessedToday) {
+  return c.json<ErrorResponse>({ status: 'error', message: 'already guessed' }, 400);
+}
 
-    // Check guessing is still open
+    // Check guessing window
     const index = await getRevealedIndex();
     const revealPercent = (index.length / (64 * 64)) * 100;
     if (revealPercent < 20 || revealPercent >= 40) {
@@ -199,7 +225,7 @@ api.post('/guess', async (c) => {
 
     const guessData: GuessData = {
       username,
-      guess: guess.trim().slice(0, 50), // max 50 chars
+      guess: guess.trim().slice(0, 50),
       submittedAt: Date.now(),
     };
 
@@ -207,32 +233,16 @@ api.post('/guess', async (c) => {
     guesses.push(guessData);
     await redis.set(GUESSES_KEY, JSON.stringify(guesses));
 
+    // Save hasGuessed as explicit boolean
     await redis.set(userKey(username), JSON.stringify({
       ...userData,
       hasGuessed: true,
+      hasGuessedDate: todayDateStr(), // tie guess to date
     }));
 
-    return c.json({ ok: true, guess: guessData });
+    return c.json({ ok: true, guess: guessData, guesses });
   } catch (e) {
     console.error('guess error', e);
     return c.json<ErrorResponse>({ status: 'error', message: 'guess failed' }, 500);
-  }
-});
-
-// ── GET /api/reset (TEMP - remove before submission) ──────
-api.get('/reset', async (c) => {
-  try {
-    const index = await getRevealedIndex();
-    for (const entry of index) {
-      const [r, c2] = entry.split(':').map(Number);
-      await redis.del(cellKey(r, c2));
-    }
-    await redis.del(REVEALED_INDEX);
-    await redis.del(GUESSES_KEY);
-    const username = (await reddit.getCurrentUsername()) ?? 'anonymous';
-    await redis.del(userKey(username));
-    return c.json({ ok: true });
-  } catch (e) {
-    return c.json({ ok: false });
   }
 });

@@ -20,8 +20,8 @@
   "menu": {
     "items": [
       {
-        "label": "Create a new post",
-        "description": "parthil-pixel",
+        "label": "Create The Last Pixel post",
+        "description": "Create today's pixel art reveal post",
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/post-create"
@@ -39,8 +39,8 @@
     "exampleForm": "/internal/form/example-submit"
   },
   "triggers": {
-    "onAppInstall": "/internal/triggers/on-app-install"
-  },
+  "onAppInstall": "/internal/triggers/on-app-install"
+},
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch"
